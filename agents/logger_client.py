@@ -32,7 +32,6 @@ async def send_metrics(lines):
 
 
 if __name__ == "__main__":
-    import sys
     import fileinput
 
     print(">> Paste lines (Ctrl+D to end input):")
