@@ -2,6 +2,7 @@
 import asyncio
 from core.utils.message import parse_message, MessageParseError
 from core.metrics.datapoints import MetricStorage
+from core.auth.session import verify_token
 from core.fs.tree import URITree
 from datetime import datetime
 
@@ -25,6 +26,14 @@ async def handle_client(reader, writer):
         raw = data.decode().strip()
         try:
             msg = parse_message(raw)
+
+            token = msg.get("token")
+            user_id = verify_token(token)
+            if not user_id:
+                writer.write(b"ERROR: Invalid or expired token\n")
+                await writer.drain()
+                continue
+
             uri = msg["uri"]
             ts = datetime.fromisoformat(msg["ts"].replace("Z", "+00:00"))
             value = msg["value"]
@@ -33,11 +42,10 @@ async def handle_client(reader, writer):
                 uri_tree.insert_uri(uri)
                 print(f"[NEW URI] Registered {uri}")
 
-            # 저장
             metric_storage.insert(uri, ts, value)
-            print(f"[SAVED] {uri} @ {ts} = {value}")
-
+            print(f"[{user_id}] {uri} @ {ts} = {value}")
             writer.write(b"ACK\n")
+
         except MessageParseError as e:
             writer.write(f"ERROR: {e}\n".encode())
 

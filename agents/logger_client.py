@@ -3,7 +3,10 @@ import asyncio
 import json
 from datetime import datetime
 from core.textml.extractor import extract_numbers_from_text
+from core.auth.session import generate_token
 
+user_id = "alice"
+token = generate_token(user_id)
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 8888
 
@@ -16,9 +19,10 @@ async def send_metrics(lines):
         for context, value in results:
             message = {
                 "type": "metric",
-                "uri": f"/agent/host1/{context or 'unknown'}",
+                "uri": f"/agent/{user_id}/{context or 'unknown'}",
                 "ts": datetime.utcnow().isoformat() + "Z",
                 "value": value,
+                "token": token,
             }
             msg_json = json.dumps(message) + "\n"
             writer.write(msg_json.encode())
