@@ -1,7 +1,7 @@
 # core/app/main.py
 import asyncio
 from core.utils.message import parse_message, MessageParseError
-from core.metrics.datapoints import MetricStorage
+from core.metrics import datapoints
 from core.auth.session import verify_token
 from core.fs.tree import URITree
 from datetime import datetime
@@ -11,7 +11,7 @@ PORT = 8888
 
 
 uri_tree = URITree()
-metric_storage = MetricStorage()
+datapoints.init_db()
 
 
 async def handle_client(reader, writer):
@@ -42,7 +42,7 @@ async def handle_client(reader, writer):
                 uri_tree.insert_uri(uri)
                 print(f"[NEW URI] Registered {uri}")
 
-            metric_storage.insert(uri, ts, value)
+            datapoints.insert(uri, ts, value)
             print(f"[{user_id}] {uri} @ {ts} = {value}")
             writer.write(b"ACK\n")
 
