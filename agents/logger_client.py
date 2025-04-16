@@ -2,42 +2,42 @@
 import asyncio
 import json
 from datetime import datetime
-from core.textml.extractor import extract_numbers_from_text
-from core.auth.session import generate_token
+from agents.collectors.base import collector_registry
 
-user_id = "alice"
-token = generate_token(user_id)
+
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 8888
+user_id = "agent01"
+token = "your_token_here"
 
 
-async def send_metrics(lines):
+async def send_collected_metrics():
+    ts = datetime.utcnow().isoformat() + "Z"
     reader, writer = await asyncio.open_connection(SERVER_HOST, SERVER_PORT)
 
-    for line in lines:
-        results = extract_numbers_from_text(line)
-        for context, value in results:
-            message = {
-                "type": "metric",
-                "uri": f"/agent/{user_id}/{context or 'unknown'}",
-                "ts": datetime.utcnow().isoformat() + "Z",
-                "value": value,
-                "token": token,
-            }
-            msg_json = json.dumps(message) + "\n"
-            writer.write(msg_json.encode())
-            await writer.drain()
-
-            response = await reader.readline()
-            print(f"[SERVER] {response.decode().strip()}")
+    for CollectorClass in collector_registry:
+        try:
+            collector = CollectorClass()
+            metrics = collector.collect()
+            for uri, value in metrics:
+                full_uri = f"/agent/{user_id}/{uri}"
+                message = {
+                    "type": "metric",
+                    "uri": full_uri,
+                    "ts": ts,
+                    "value": value,
+                    "token": token,
+                }
+                writer.write((json.dumps(message) + "\n").encode())
+                await writer.drain()
+                resp = await reader.readline()
+                print(f"[SENT] {full_uri} = {value} [{resp.decode().strip()}]")
+        except Exception as e:
+            print(f"[ERROR] {CollectorClass.__name__}: {e}")
 
     writer.close()
     await writer.wait_closed()
 
 
 if __name__ == "__main__":
-    import fileinput
-
-    print(">> Paste lines (Ctrl+D to end input):")
-    lines = list(fileinput.input())
-    asyncio.run(send_metrics(lines))
+    asyncio.run(send_collected_metrics())
