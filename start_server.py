@@ -1,7 +1,7 @@
 # run_server.py
 import asyncio
 
-from core.app.main import run_server
+from server.app.main import run_server
 
 if __name__ == "__main__":
     try:

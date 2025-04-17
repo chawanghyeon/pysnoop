@@ -2,7 +2,7 @@
 
 import sys
 
-from core.metrics import ascii_plot, datapoints
+from server.metrics import ascii_plot, datapoints
 
 
 def print_all(uri: str):

@@ -2,10 +2,10 @@
 import asyncio
 from datetime import datetime
 
-from core.auth.session import verify_token
-from core.fs.tree import URITree
-from core.metrics import datapoints
-from core.utils.message import MessageParseError, parse_message
+from server.auth.session import verify_token
+from server.fs.tree import URITree
+from server.metrics import datapoints
+from server.utils.message import MessageParseError, parse_message
 
 HOST = "127.0.0.1"
 PORT = 8888

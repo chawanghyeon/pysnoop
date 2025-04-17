@@ -1,5 +1,5 @@
 # tests/test_uri_tree.py
-from core.fs.tree import URITree
+from server.fs.tree import URITree
 
 
 def test_uri_insertion():

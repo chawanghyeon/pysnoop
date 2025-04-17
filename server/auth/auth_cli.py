@@ -1,6 +1,6 @@
 # auth_cli.py
-from core.auth.session import generate_token
-from core.auth.users import authenticate_user, init_db, register_user
+from server.auth.session import generate_token
+from server.auth.users import authenticate_user, init_db, register_user
 
 
 def register():
