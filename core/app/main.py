@@ -1,10 +1,11 @@
 # core/app/main.py
 import asyncio
-from core.utils.message import parse_message, MessageParseError
-from core.metrics import datapoints
+from datetime import datetime
+
 from core.auth.session import verify_token
 from core.fs.tree import URITree
-from datetime import datetime
+from core.metrics import datapoints
+from core.utils.message import MessageParseError, parse_message
 
 HOST = "127.0.0.1"
 PORT = 8888

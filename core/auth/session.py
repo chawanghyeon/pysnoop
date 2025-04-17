@@ -1,7 +1,7 @@
 # core/auth/session.py
-import hmac
-import hashlib
 import base64
+import hashlib
+import hmac
 import time
 
 SECRET_KEY = b"supersecret"  # 보안적으로는 환경변수에서 받아야 함
@@ -24,9 +24,7 @@ def verify_token(token: str) -> str | None:
             return None  # 만료
 
         expected_sig = hmac.new(SECRET_KEY, payload.encode(), hashlib.sha256).digest()
-        if hmac.compare_digest(
-            base64.urlsafe_b64encode(expected_sig).decode(), sig_b64
-        ):
+        if hmac.compare_digest(base64.urlsafe_b64encode(expected_sig).decode(), sig_b64):
             return user_id
     except Exception:
         return None

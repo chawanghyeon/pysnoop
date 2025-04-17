@@ -1,5 +1,6 @@
 # agents/collectors/psutil_metrics.py
 import psutil
+
 from .base import BaseCollector, register_collector
 
 

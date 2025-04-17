@@ -1,5 +1,6 @@
 # agents/collectors/uptime.py
 import subprocess
+
 from .base import BaseCollector
 
 

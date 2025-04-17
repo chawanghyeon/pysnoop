@@ -1,5 +1,6 @@
 # agents/collectors/top_processes.py
 import psutil
+
 from .base import BaseCollector
 
 
@@ -11,6 +12,5 @@ class TopProcessCollector(BaseCollector):
             reverse=True,
         )
         return [
-            (f"top.cpu.{p.info['pid']}_{p.info['name']}", p.info["cpu_percent"])
-            for p in procs[:5]
+            (f"top.cpu.{p.info['pid']}_{p.info['name']}", p.info["cpu_percent"]) for p in procs[:5]
         ]

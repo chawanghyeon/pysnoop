@@ -2,8 +2,8 @@
 import asyncio
 import json
 from datetime import datetime
-from agents.collectors.base import collector_registry
 
+from agents.collectors.base import collector_registry
 
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 8888

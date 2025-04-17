@@ -1,7 +1,7 @@
 # core/metrics/datapoints.py
 import sqlite3
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from typing import List, Tuple
 
 DB_PATH = Path("db/metrics.db")
@@ -38,9 +38,7 @@ def insert(uri: str, ts: datetime, value: float):
 
 def get(uri: str) -> List[Tuple[datetime, float]]:
     with get_connection() as conn:
-        cursor = conn.execute(
-            "SELECT ts, value FROM metrics WHERE uri = ? ORDER BY ts", (uri,)
-        )
+        cursor = conn.execute("SELECT ts, value FROM metrics WHERE uri = ? ORDER BY ts", (uri,))
         return [(datetime.fromisoformat(row[0]), row[1]) for row in cursor.fetchall()]
 
 

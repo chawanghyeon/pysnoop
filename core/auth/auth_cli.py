@@ -1,11 +1,6 @@
 # auth_cli.py
-import sys
-import os
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-
-from core.auth.users import register_user, authenticate_user, init_db
 from core.auth.session import generate_token
+from core.auth.users import authenticate_user, init_db, register_user
 
 
 def register():

@@ -1,20 +1,10 @@
 # tests/test_agent_collectors.py
-import sys
-import os
-import pytest
+
 from datetime import datetime
 
-# 프로젝트 루트에 경로 추가
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import pytest
 
 from agents.collectors.base import collector_registry
-
-# 모든 collector 수동 import (등록을 유도)
-import agents.collectors.psutil_metrics
-import agents.collectors.top_processes
-import agents.collectors.syslog_lines
-import agents.collectors.uptime
-import agents.collectors.dmesg_errors
 
 # 필요한 수집기 모두 import!
 
@@ -26,14 +16,10 @@ def test_all_registered_collectors_collect():
         collector = CollectorClass()
         metrics = collector.collect()
 
-        assert isinstance(
-            metrics, list
-        ), f"{CollectorClass.__name__} did not return a list"
+        assert isinstance(metrics, list), f"{CollectorClass.__name__} did not return a list"
 
         for uri, value in metrics:
-            assert isinstance(
-                uri, str
-            ), f"{CollectorClass.__name__} returned invalid URI: {uri}"
+            assert isinstance(uri, str), f"{CollectorClass.__name__} returned invalid URI: {uri}"
             assert isinstance(
                 value, float
             ), f"{CollectorClass.__name__} returned invalid value: {value}"
@@ -62,9 +48,7 @@ def test_collected_metrics_format():
                     }
                 )
         except Exception as e:
-            pytest.fail(
-                f"Collector {CollectorClass.__name__} failed with exception: {e}"
-            )
+            pytest.fail(f"Collector {CollectorClass.__name__} failed with exception: {e}")
 
     assert all_metrics, "No metrics collected"
     for m in all_metrics:
@@ -79,9 +63,7 @@ def test_all_collectors_work_and_return_data():
             collector = CollectorClass()
             results = collector.collect()
 
-            assert isinstance(
-                results, list
-            ), f"{CollectorClass.__name__} returned non-list"
+            assert isinstance(results, list), f"{CollectorClass.__name__} returned non-list"
             assert all(
                 isinstance(x, tuple) and len(x) == 2 for x in results
             ), f"{CollectorClass.__name__} returned invalid format"
