@@ -1,4 +1,6 @@
 # agents/collectors/psutil_metrics.py
+from typing import List, Tuple
+
 import psutil
 
 from .base import BaseCollector, register_collector
@@ -6,7 +8,7 @@ from .base import BaseCollector, register_collector
 
 @register_collector
 class PsutilMetricsCollector(BaseCollector):
-    def collect(self):
+    def collect(self) -> List[Tuple[str, float]]:
         data = []
         for i, usage in enumerate(psutil.cpu_percent(percpu=True)):
             data.append((f"system.cpu.core{i}", usage))

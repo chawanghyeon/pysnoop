@@ -1,11 +1,13 @@
 # agents/collectors/top_processes.py
+from typing import List, Tuple
+
 import psutil
 
 from .base import BaseCollector
 
 
 class TopProcessCollector(BaseCollector):
-    def collect(self):
+    def collect(self) -> List[Tuple[str, float]]:
         procs = sorted(
             psutil.process_iter(attrs=["pid", "name", "cpu_percent"]),
             key=lambda p: p.info["cpu_percent"],

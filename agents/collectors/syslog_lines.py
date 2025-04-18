@@ -1,12 +1,13 @@
 # agents/collectors/syslog_lines.py
 import os
 import subprocess
+from typing import List, Tuple
 
 from .base import BaseCollector
 
 
 class SyslogLineLengthCollector(BaseCollector):
-    def collect(self):
+    def collect(self) -> List[Tuple[str, float]]:
         log_path = "/var/log/syslog"
         metrics = []
         if os.path.exists(log_path):
