@@ -4,7 +4,6 @@ from datetime import datetime
 
 from server.auth.session import verify_token
 from server.fs.tree import URITree
-from server.metrics import datapoints
 from server.utils.message import MessageParseError, parse_message
 
 HOST = "127.0.0.1"
@@ -12,7 +11,6 @@ PORT = 8888
 
 
 uri_tree = URITree()
-datapoints.init_db()
 
 
 async def handle_client(reader, writer):
@@ -43,7 +41,6 @@ async def handle_client(reader, writer):
                 uri_tree.insert_uri(uri)
                 print(f"[NEW URI] Registered {uri}")
 
-            datapoints.insert(uri, ts, value)
             print(f"[{user_id}] {uri} @ {ts} = {value}")
             writer.write(b"ACK\n")
 
