@@ -178,3 +178,7 @@ cython_debug/
 
 # vscode
 .vscode
+
+# ssl folder
+ssl/
+*.pem
