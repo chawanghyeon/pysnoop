@@ -92,10 +92,11 @@ async def run_agent(args: argparse.Namespace) -> None:
         await asyncio.sleep(INTERVAL)
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv=None) -> argparse.Namespace:
     """
     Parses command-line arguments required to run the agent.
-
+    Args:
+        argv (list): Optional list of arguments, used when invoked from outside.
     Returns:
         argparse.Namespace: Parsed arguments with host, port, user_id, and token.
     """
@@ -104,7 +105,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--port", type=int, required=True, help="Server port (e.g. 8888)")
     parser.add_argument("--user-id", required=True, help="Agent user ID")
     parser.add_argument("--token", required=True, help="Authentication token")
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 if __name__ == "__main__":
