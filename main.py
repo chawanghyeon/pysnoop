@@ -3,10 +3,9 @@ import ssl
 from datetime import datetime
 from pathlib import Path
 
-from utils.gen_cert import generate_self_signed_cert  # 인증서 자동 생성 유틸
-
 from server.auth.session import verify_token  # 토큰 검증 유틸
 from server.fs.tree import URITree  # URI 등록 및 탐색 트리
+from server.utils.gen_cert import generate_self_signed_cert  # 인증서 자동 생성 유틸
 from server.utils.log_writer import LogWriter  # 비동기 로그 저장기
 from server.utils.message import MessageParseError, parse_message  # 메시지 파싱 유틸
 
