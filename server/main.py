@@ -1,15 +1,19 @@
+# main.py
+import argparse
 import asyncio
+import os
 import ssl
 from datetime import datetime
 from pathlib import Path
 
-from server.auth.session import verify_token  # 토큰 검증 유틸
-from server.fs.tree import URITree  # URI 등록 및 탐색 트리
-from server.utils.gen_cert import generate_self_signed_cert  # 인증서 자동 생성 유틸
-from server.utils.log_writer import LogWriter  # 비동기 로그 저장기
-from server.utils.message import MessageParseError, parse_message  # 메시지 파싱 유틸
+from utils.gen_cert import generate_self_signed_cert
 
-# 서버 호스트 및 포트 설정
+from server.auth.session import verify_token
+from server.utils.log_writer import LogWriter
+from server.utils.memory_cache import MetricCache
+from server.utils.message import MessageParseError, parse_message
+
+# 서버 설정
 HOST = "127.0.0.1"
 PORT = 8888
 
@@ -17,92 +21,126 @@ PORT = 8888
 CERT_PATH = Path("ssl/cert.pem")
 KEY_PATH = Path("ssl/key.pem")
 
-# 로그 저장기 및 URI 트리 인스턴스 초기화
+# 인스턴스 초기화
 log_writer = LogWriter()
-uri_tree = URITree()
+metric_cache = MetricCache()
 
 
-async def handle_client(reader, writer):
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     """
-    클라이언트의 연결을 처리하고, 메트릭 메시지를 수신하여
-    URI 등록, 토큰 검증, 로그 저장까지 수행하는 비동기 함수.
-
-    Args:
-        reader (StreamReader): 클라이언트에서 오는 데이터 스트림
-        writer (StreamWriter): 클라이언트에게 응답을 보내는 스트림
+    클라이언트 연결을 처리하고, 수신된 메트릭을 파일과 메모리에 저장하는 비동기 함수
     """
     addr = writer.get_extra_info("peername")
     print(f"[CONNECTED] {addr}")
 
+    try:
+        while True:
+            data = await reader.readline()
+            if not data:
+                break
+
+            raw = data.decode().strip()
+            try:
+                msg = parse_message(raw)
+                token = msg.get("token")
+                if not token:
+                    writer.write(b"ERROR: Invalid or expired token\n")
+                    await writer.drain()
+                    continue
+
+                user_id = verify_token(token)
+                if not user_id:
+                    writer.write(b"ERROR: Invalid or expired token\n")
+                    await writer.drain()
+                    continue
+
+                uri = msg["uri"]
+                ts = datetime.fromisoformat(msg["ts"].replace("Z", "+00:00"))
+                value = msg["value"]
+
+                # 파일 기록
+                await log_writer.append({"ts": ts, "uri": uri, "value": value, "user_id": user_id})
+
+                # 메모리 캐시 업데이트
+                await metric_cache.update(uri, value, ts)
+
+                print(f"[{user_id}] {uri} @ {ts} = {value}")
+
+                writer.write(b"ACK\n")
+
+            except MessageParseError as e:
+                writer.write(f"ERROR: {e}\n".encode())
+
+            await writer.drain()
+
+    except Exception as e:
+        print(f"[ERROR] Connection error from {addr}: {e}")
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+
+async def dashboard_loop():
+    """
+    주기적으로 메모리 캐시를 콘솔에 출력하는 대시보드 루프
+    """
     while True:
-        data = await reader.readline()
-        if not data:
-            break  # 연결 종료
+        os.system("clear")  # Windows는 "cls"
+        snapshot = await metric_cache.snapshot()
 
-        raw = data.decode().strip()
-        try:
-            msg = parse_message(raw)  # 문자열 메시지를 dict로 파싱
+        print(f"{'URI':60} | {'VALUE':>10} | {'TIMESTAMP'}")
+        print("-" * 90)
 
-            token = msg.get("token")
-            user_id = verify_token(token)  # 토큰 검증
-            if not user_id:
-                writer.write(b"ERROR: Invalid or expired token\n")
-                await writer.drain()
-                continue  # 인증 실패시 무시
+        for uri, info in snapshot.items():
+            value = info.get("value")
+            ts = info.get("timestamp")
+            print(f"{uri:60} | {value:10} | {ts}")
 
-            uri = msg["uri"]
-            ts = datetime.fromisoformat(msg["ts"].replace("Z", "+00:00"))
-            value = msg["value"]
-
-            # 새로운 URI인 경우 트리에 등록
-            if not uri_tree.exists(uri):
-                uri_tree.insert_uri(uri)
-                print(f"[NEW URI] Registered {uri}")
-
-            # 수신 로그 출력
-            print(f"[{user_id}] {uri} @ {ts} = {value}")
-
-            # 로그를 비동기 큐에 저장 요청
-            await log_writer.append({"ts": ts, "uri": uri, "value": value, "user_id": user_id})
-
-            writer.write(b"ACK\n")
-
-        except MessageParseError as e:
-            writer.write(f"ERROR: {e}\n".encode())
-
-        await writer.drain()
-
-    writer.close()
-    await writer.wait_closed()
+        await asyncio.sleep(2)
 
 
 async def run_server():
     """
-    TLS 기반 TCP 서버를 시작하고, 클라이언트 핸들러 및 로그 쓰기 루프를 실행하는 메인 함수.
-    인증서가 없으면 자동 생성한다.
+    TLS 기반 TCP 서버 + 대시보드 + 로그 저장기 실행
     """
-    # 인증서 자동 생성
     if not CERT_PATH.exists() or not KEY_PATH.exists():
         print("[TLS] 인증서가 없어 자동 생성합니다.")
         generate_self_signed_cert(CERT_PATH, KEY_PATH)
 
-    # TLS 보안 설정
     ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     ssl_context.load_cert_chain(certfile=str(CERT_PATH), keyfile=str(KEY_PATH))
 
-    log_writer.start()  # 로그 쓰기 루프 시작
+    log_writer.start()
 
-    # TLS 기반 TCP 서버 바인딩
     server = await asyncio.start_server(handle_client, HOST, PORT, ssl=ssl_context)
     addr = server.sockets[0].getsockname()
     print(f"[SECURE SERVER] Serving on {addr} (TLS enabled)")
 
-    async with server:
-        await server.serve_forever()
+    await asyncio.gather(server.serve_forever(), dashboard_loop())
+
+
+def parse_args() -> tuple[argparse.Namespace, list[str]]:
+    parser = argparse.ArgumentParser(description="pysnoop main entry")
+    parser.add_argument(
+        "--mode",
+        choices=["server", "agent"],
+        required=True,
+        help="Which mode to run: server or agent",
+    )
+    return parser.parse_known_args()
 
 
 if __name__ == "__main__":
+    args, unknown_args = parse_args()
+
     try:
-        asyncio.run(run_server())
+        if args.mode == "server":
+            asyncio.run(run_server())
+        else:
+            from agents.main import parse_args as parse_agent_args
+            from agents.main import run_agent
+
+            agent_args = parse_agent_args(unknown_args)
+            asyncio.run(run_agent(agent_args))
     except KeyboardInterrupt:
-        print("\n[SERVER] Shutdown requested by user")
+        print("\n[MAIN] Shutdown requested by user.")
