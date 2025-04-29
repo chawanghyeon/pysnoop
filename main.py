@@ -2,8 +2,6 @@
 import argparse
 import asyncio
 
-from agents.main import parse_args as parse_agent_args  # Agent 실행기
-from agents.main import run_agent
 from server.main import run_server  # 서버 루프
 
 
@@ -21,14 +19,17 @@ def parse_main_args() -> tuple[argparse.Namespace, list[str]]:
 if __name__ == "__main__":
     args, unknown_args = parse_main_args()
 
-    try:
-        if args.mode == "server":
+    if args.mode == "server":
+        try:
             asyncio.run(run_server())
+        except KeyboardInterrupt:
+            print("\n[MAIN] KeyboardInterrupt received. Exiting...")
+    else:
+        from agents.main import parse_args as parse_agent_args
+        from agents.main import run_agent
 
-        elif args.mode == "agent":
-            # agent 전용 인자 파싱 (host, port, user_id, token)
-            agent_args = parse_agent_args(unknown_args)
+        agent_args = parse_agent_args(unknown_args)
+        try:
             asyncio.run(run_agent(agent_args))
-
-    except KeyboardInterrupt:
-        print("\n[MAIN] Shutdown requested by user.")
+        except KeyboardInterrupt:
+            print("\n[MAIN] KeyboardInterrupt received. Exiting...")

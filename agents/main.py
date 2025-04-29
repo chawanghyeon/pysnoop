@@ -8,26 +8,22 @@ from typing import Optional
 
 from agents.collectors.base import collector_registry
 
-# Interval between metric sends (in seconds)
+# Interval between full metric sends (in seconds)
 INTERVAL: int = 10
 
-# Shutdown flag
-should_exit: bool = False
+# Shutdown signal
+shutdown_event = asyncio.Event()
 
 
 def handle_exit(sig: int, frame: Optional[FrameType]) -> None:
     """
     Handle system signals (SIGINT, SIGTERM) and trigger graceful shutdown.
-
-    Args:
-        sig: The signal number received.
-        frame: Current stack frame (not used).
     """
-    global should_exit
-    should_exit = True
     print("\n[INFO] Agent stopping...")
+    shutdown_event.set()
 
 
+# Register signal handlers
 signal.signal(signal.SIGINT, handle_exit)
 signal.signal(signal.SIGTERM, handle_exit)
 
@@ -35,15 +31,6 @@ signal.signal(signal.SIGTERM, handle_exit)
 async def send_collected_metrics(host: str, port: int, user_id: str, token: str) -> None:
     """
     Connects to the server and sends collected metrics from all registered collectors.
-
-    Args:
-        host: Target server hostname or IP.
-        port: Target server port number.
-        user_id: Identifier for the agent or user.
-        token: Authentication token.
-
-    Returns:
-        None
     """
     ts: str = datetime.utcnow().isoformat() + "Z"
 
@@ -80,25 +67,22 @@ async def send_collected_metrics(host: str, port: int, user_id: str, token: str)
 async def run_agent(args: argparse.Namespace) -> None:
     """
     Main agent loop that collects and sends metrics periodically.
-
-    Args:
-        args: Parsed command-line arguments (includes host, port, user_id, token).
-
-    Returns:
-        None
     """
-    while not should_exit:
+    while not shutdown_event.is_set():
         await send_collected_metrics(args.host, args.port, args.user_id, args.token)
-        await asyncio.sleep(INTERVAL)
+
+        # Sleep in small chunks to respond quickly to shutdown
+        sleep_time = 0
+        while sleep_time < INTERVAL:
+            if shutdown_event.is_set():
+                break
+            await asyncio.sleep(1)
+            sleep_time += 1
 
 
 def parse_args(argv=None) -> argparse.Namespace:
     """
     Parses command-line arguments required to run the agent.
-    Args:
-        argv (list): Optional list of arguments, used when invoked from outside.
-    Returns:
-        argparse.Namespace: Parsed arguments with host, port, user_id, and token.
     """
     parser = argparse.ArgumentParser(description="System Metrics Agent")
     parser.add_argument("--host", required=True, help="Server host (e.g. 127.0.0.1)")

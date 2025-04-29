@@ -6,9 +6,8 @@ import ssl
 from datetime import datetime
 from pathlib import Path
 
-from utils.gen_cert import generate_self_signed_cert
-
 from server.auth.session import verify_token
+from server.utils.gen_cert import generate_self_signed_cert
 from server.utils.log_writer import LogWriter
 from server.utils.memory_cache import MetricCache
 from server.utils.message import MessageParseError, parse_message
@@ -116,7 +115,23 @@ async def run_server():
     addr = server.sockets[0].getsockname()
     print(f"[SECURE SERVER] Serving on {addr} (TLS enabled)")
 
-    await asyncio.gather(server.serve_forever(), dashboard_loop())
+    # 서버와 대시보드를 각각 Task로 실행
+    server_task = asyncio.create_task(server.serve_forever())
+    dashboard_task = asyncio.create_task(dashboard_loop())
+
+    try:
+        await asyncio.gather(server_task, dashboard_task)
+    except asyncio.CancelledError:
+        print("[SERVER] Shutdown requested, cleaning up...")
+    finally:
+        server.close()
+        await server.wait_closed()
+        dashboard_task.cancel()
+        try:
+            await dashboard_task
+        except asyncio.CancelledError:
+            pass
+        print("[SERVER] Clean shutdown complete.")
 
 
 def parse_args() -> tuple[argparse.Namespace, list[str]]:
@@ -133,14 +148,17 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
 if __name__ == "__main__":
     args, unknown_args = parse_args()
 
-    try:
-        if args.mode == "server":
+    if args.mode == "server":
+        try:
             asyncio.run(run_server())
-        else:
-            from agents.main import parse_args as parse_agent_args
-            from agents.main import run_agent
+        except KeyboardInterrupt:
+            print("\n[MAIN] KeyboardInterrupt received. Exiting...")
+    else:
+        from agents.main import parse_args as parse_agent_args
+        from agents.main import run_agent
 
-            agent_args = parse_agent_args(unknown_args)
+        agent_args = parse_agent_args(unknown_args)
+        try:
             asyncio.run(run_agent(agent_args))
-    except KeyboardInterrupt:
-        print("\n[MAIN] Shutdown requested by user.")
+        except KeyboardInterrupt:
+            print("\n[MAIN] KeyboardInterrupt received. Exiting...")
