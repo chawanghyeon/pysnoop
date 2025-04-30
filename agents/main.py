@@ -1,41 +1,66 @@
-import argparse
 import asyncio
+import hashlib
+import hmac
 import json
+import os
 import signal
 from datetime import datetime
 from types import FrameType
 from typing import Optional
 
+from dotenv import load_dotenv
+
 from agents.collectors.base import collector_registry
 
-# Interval between full metric sends (in seconds)
+# ✅ Load .env
+load_dotenv()
+
+AGENT_HOST = os.environ.get("AGENT_HOST", "")
+AGENT_PORT = int(os.environ.get("AGENT_PORT", "8888"))
+AGENT_USER_ID = os.environ.get("AGENT_USER_ID", "")
+AGENT_TOKEN = os.environ.get("AGENT_TOKEN", "")
+AGENT_SECRET = os.environ.get("AGENT_SECRET", "")
+
+# 필수값 검증
+if not all([AGENT_HOST, AGENT_USER_ID, AGENT_TOKEN, AGENT_SECRET]):
+    raise ValueError("AGENT_HOST, AGENT_USER_ID, AGENT_TOKEN, AGENT_SECRET must be set in .env")
+
+
+def sign_message(secret: str, payload: str) -> str:
+    """
+    HMAC 서명을 생성하는 함수
+    """
+    return hmac.new(secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
+
+
+# 메트릭 전송 간격 (초)
 INTERVAL: int = 10
 
-# Shutdown signal
+# 종료 이벤트
 shutdown_event = asyncio.Event()
 
 
 def handle_exit(sig: int, frame: Optional[FrameType]) -> None:
     """
-    Handle system signals (SIGINT, SIGTERM) and trigger graceful shutdown.
+    SIGINT 또는 SIGTERM 시 graceful shutdown 처리
     """
     print("\n[INFO] Agent stopping...")
     shutdown_event.set()
 
 
-# Register signal handlers
+# 종료 시그널 등록
 signal.signal(signal.SIGINT, handle_exit)
 signal.signal(signal.SIGTERM, handle_exit)
 
 
-async def send_collected_metrics(host: str, port: int, user_id: str, token: str) -> None:
+async def send_collected_metrics() -> None:
     """
-    Connects to the server and sends collected metrics from all registered collectors.
+    서버에 연결하여 등록된 수집기로부터 메트릭을 수집 후 전송
     """
     ts: str = datetime.utcnow().isoformat() + "Z"
 
     try:
-        reader, writer = await asyncio.open_connection(host, port)
+        reader, writer = await asyncio.open_connection(AGENT_HOST, AGENT_PORT)
     except Exception as e:
         print(f"[ERROR] Connection failed: {e}")
         return
@@ -45,18 +70,28 @@ async def send_collected_metrics(host: str, port: int, user_id: str, token: str)
             collector = CollectorClass()
             metrics = collector.collect()
             for uri, value in metrics:
-                full_uri = f"/agent/{user_id}/{uri}"
+                full_uri = f"/agent/{AGENT_USER_ID}/{uri}"
                 message = {
                     "type": "metric",
                     "uri": full_uri,
                     "ts": ts,
                     "value": value,
-                    "token": token,
+                    "token": AGENT_TOKEN,
                 }
+
+                # HMAC 서명 추가
+                payload_str = json.dumps(message, separators=(",", ":"), sort_keys=True)
+                signature = sign_message(AGENT_SECRET, payload_str)
+                message["signature"] = signature
+
+                # 전송
                 writer.write((json.dumps(message) + "\n").encode())
                 await writer.drain()
+
+                # 응답
                 resp = await reader.readline()
                 print(f"[SENT] {full_uri} = {value} [Response: {resp.decode().strip()}]")
+
         except Exception as e:
             print(f"[ERROR] {CollectorClass.__name__} failed: {e}")
 
@@ -64,14 +99,13 @@ async def send_collected_metrics(host: str, port: int, user_id: str, token: str)
     await writer.wait_closed()
 
 
-async def run_agent(args: argparse.Namespace) -> None:
+async def run_agent() -> None:
     """
-    Main agent loop that collects and sends metrics periodically.
+    주기적으로 메트릭을 수집하고 서버로 전송하는 Agent 루프
     """
     while not shutdown_event.is_set():
-        await send_collected_metrics(args.host, args.port, args.user_id, args.token)
+        await send_collected_metrics()
 
-        # Sleep in small chunks to respond quickly to shutdown
         sleep_time = 0
         while sleep_time < INTERVAL:
             if shutdown_event.is_set():
@@ -80,21 +114,8 @@ async def run_agent(args: argparse.Namespace) -> None:
             sleep_time += 1
 
 
-def parse_args(argv=None) -> argparse.Namespace:
-    """
-    Parses command-line arguments required to run the agent.
-    """
-    parser = argparse.ArgumentParser(description="System Metrics Agent")
-    parser.add_argument("--host", required=True, help="Server host (e.g. 127.0.0.1)")
-    parser.add_argument("--port", type=int, required=True, help="Server port (e.g. 8888)")
-    parser.add_argument("--user-id", required=True, help="Agent user ID")
-    parser.add_argument("--token", required=True, help="Authentication token")
-    return parser.parse_args(argv)
-
-
 if __name__ == "__main__":
-    args = parse_args()
     try:
-        asyncio.run(run_agent(args))
+        asyncio.run(run_agent())
     except KeyboardInterrupt:
         print("\n[INFO] Agent terminated by user.")

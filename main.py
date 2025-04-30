@@ -25,11 +25,9 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("\n[MAIN] KeyboardInterrupt received. Exiting...")
     else:
-        from agents.main import parse_args as parse_agent_args
         from agents.main import run_agent
 
-        agent_args = parse_agent_args(unknown_args)
         try:
-            asyncio.run(run_agent(agent_args))
+            asyncio.run(run_agent())
         except KeyboardInterrupt:
             print("\n[MAIN] KeyboardInterrupt received. Exiting...")

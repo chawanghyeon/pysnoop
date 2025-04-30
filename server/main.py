@@ -1,12 +1,12 @@
-# main.py
 import argparse
 import asyncio
+import json
 import os
 import ssl
 from datetime import datetime
 from pathlib import Path
 
-from server.auth.session import verify_token
+from server.auth.session import verify_hmac_signature, verify_token
 from server.utils.gen_cert import generate_self_signed_cert
 from server.utils.log_writer import LogWriter
 from server.utils.memory_cache import MetricCache
@@ -42,29 +42,39 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             try:
                 msg = parse_message(raw)
                 token = msg.get("token")
-                if not token:
-                    writer.write(b"ERROR: Invalid or expired token\n")
+                signature = msg.pop("signature", None)
+
+                if not token or not signature:
+                    writer.write(b"ERROR: Missing token or signature\n")
                     await writer.drain()
                     continue
 
+                # 토큰 유효성 검증
                 user_id = verify_token(token)
                 if not user_id:
                     writer.write(b"ERROR: Invalid or expired token\n")
                     await writer.drain()
                     continue
 
+                # HMAC 서명 검증
+                raw_payload = json.dumps(msg, separators=(",", ":"), sort_keys=True)
+                if not verify_hmac_signature(token, raw_payload, signature):
+                    writer.write(b"ERROR: Invalid signature\n")
+                    await writer.drain()
+                    continue
+
+                # 파싱된 메트릭 정보 처리
                 uri = msg["uri"]
                 ts = datetime.fromisoformat(msg["ts"].replace("Z", "+00:00"))
                 value = msg["value"]
 
-                # 파일 기록
+                # 로그 파일 기록
                 await log_writer.append({"ts": ts, "uri": uri, "value": value, "user_id": user_id})
 
                 # 메모리 캐시 업데이트
                 await metric_cache.update(uri, value, ts)
 
                 print(f"[{user_id}] {uri} @ {ts} = {value}")
-
                 writer.write(b"ACK\n")
 
             except MessageParseError as e:
@@ -143,22 +153,3 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
         help="Which mode to run: server or agent",
     )
     return parser.parse_known_args()
-
-
-if __name__ == "__main__":
-    args, unknown_args = parse_args()
-
-    if args.mode == "server":
-        try:
-            asyncio.run(run_server())
-        except KeyboardInterrupt:
-            print("\n[MAIN] KeyboardInterrupt received. Exiting...")
-    else:
-        from agents.main import parse_args as parse_agent_args
-        from agents.main import run_agent
-
-        agent_args = parse_agent_args(unknown_args)
-        try:
-            asyncio.run(run_agent(agent_args))
-        except KeyboardInterrupt:
-            print("\n[MAIN] KeyboardInterrupt received. Exiting...")
