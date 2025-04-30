@@ -1,31 +1,62 @@
-# server/auth/session.py
-import base64
 import hashlib
 import hmac
-import time
+import json
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
 
-SECRET_KEY = b"supersecret"
+TOKEN_REGISTRY_PATH = Path("server/auth/token_registry.json")
 
-
-def generate_token(user_id: str, expire_seconds: int = 3600) -> str:
-    exp = int(time.time()) + expire_seconds
-    payload = f"{user_id}:{exp}"
-    sig = hmac.new(SECRET_KEY, payload.encode(), hashlib.sha256).digest()
-    token = f"{payload}:{base64.urlsafe_b64encode(sig).decode()}"
-    return token
+_token_db = None
 
 
-def verify_token(token: str) -> str | None:
-    try:
-        payload, sig_b64 = token.rsplit(":", 1)
-        user_id, exp_str = payload.split(":")
-        exp = int(exp_str)
-        if time.time() > exp:
-            return None  # 만료
+def load_token_registry() -> dict:
+    global _token_db
+    if _token_db is None:
+        with open(TOKEN_REGISTRY_PATH) as f:
+            _token_db = json.load(f)
+    return _token_db
 
-        expected_sig = hmac.new(SECRET_KEY, payload.encode(), hashlib.sha256).digest()
-        if hmac.compare_digest(base64.urlsafe_b64encode(expected_sig).decode(), sig_b64):
-            return user_id
-    except Exception:
+
+def verify_token(token: str) -> Optional[str]:
+    """
+    토큰이 유효하고 만료되지 않았으면 user_id 반환,
+    아니면 None 반환
+    """
+    token_db = load_token_registry()
+    entry = token_db.get(token)
+    if not entry:
         return None
+
+    expires_at = datetime.fromisoformat(entry["expires_at"].replace("Z", "+00:00"))
+    now = datetime.utcnow()
+
+    if now > expires_at:
+        print("[AUTH] Token expired.")
+        return None
+
+    return entry["user_id"]
+
+
+def get_secret_for_token(token: str) -> Optional[str]:
+    """
+    토큰에 대응하는 HMAC secret 반환
+    """
+    token_db = load_token_registry()
+    entry = token_db.get(token)
+    if entry:
+        return entry["secret"]
     return None
+
+
+def verify_hmac_signature(token: str, payload: str, signature: str) -> bool:
+    """
+    주어진 payload와 secret을 이용해 HMAC을 계산하고,
+    받은 signature와 비교해서 일치 여부 반환
+    """
+    secret = get_secret_for_token(token)
+    if not secret:
+        return False
+
+    expected = hmac.new(secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature)

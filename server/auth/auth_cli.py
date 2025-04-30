@@ -1,37 +1,51 @@
-# auth_cli.py
-from server.auth.session import generate_token
-from server.auth.users import authenticate_user, init_db, register_user
+import argparse
+import json
+import secrets
+from datetime import datetime, timedelta
+from pathlib import Path
+
+TOKEN_PATH = Path("server/auth/token_registry.json")
 
 
-def register():
-    user = input("Username: ")
-    pw = input("Password: ")
-    if register_user(user, pw):
-        print(f"[OK] Registered user '{user}'")
-    else:
-        print("[ERROR] User already exists.")
+def load_registry() -> dict:
+    if TOKEN_PATH.exists():
+        with open(TOKEN_PATH) as f:
+            return json.load(f)
+    return {}
 
 
-def login():
-    user = input("Username: ")
-    pw = input("Password: ")
-    if authenticate_user(user, pw):
-        token = generate_token(user)
-        print(f"[OK] Login successful. Token:\n{token}")
-    else:
-        print("[ERROR] Invalid credentials.")
+def save_registry(registry: dict):
+    with open(TOKEN_PATH, "w") as f:
+        json.dump(registry, f, indent=2)
 
 
-def main():
-    init_db()
-    print("1. Register")
-    print("2. Login")
-    choice = input("Select> ")
-    if choice == "1":
-        register()
-    elif choice == "2":
-        login()
+def issue_token(user_id: str, valid_days: int = 365):
+    registry = load_registry()
+
+    token = secrets.token_hex(16)
+    secret = secrets.token_hex(32)
+    issued_at = datetime.utcnow()
+    expires_at = issued_at + timedelta(days=valid_days)
+
+    registry[token] = {
+        "user_id": user_id,
+        "secret": secret,
+        "issued_at": issued_at.isoformat() + "Z",
+        "expires_at": expires_at.isoformat() + "Z",
+    }
+
+    save_registry(registry)
+
+    print(f"✅ Token issued for {user_id}")
+    print(f"TOKEN:  {token}")
+    print(f"SECRET: {secret}")
+    print(f"EXPIRES: {expires_at.isoformat()}Z")
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Token manager for agents")
+    parser.add_argument("user_id", help="Agent user ID")
+    parser.add_argument("--days", type=int, default=365, help="Token validity (days)")
+
+    args = parser.parse_args()
+    issue_token(args.user_id, args.days)
