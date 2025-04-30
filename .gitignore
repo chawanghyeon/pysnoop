@@ -182,3 +182,6 @@ cython_debug/
 # ssl folder
 ssl/
 *.pem
+
+# token registry
+token_registry.json

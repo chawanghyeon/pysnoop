@@ -3,3 +3,4 @@ pytest
 pre-commit
 cryptography
 pip-tools
+python-dotenv
