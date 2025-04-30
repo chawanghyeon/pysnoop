@@ -1,10 +1,10 @@
-# core/auth/session.py
+# server/auth/session.py
 import base64
 import hashlib
 import hmac
 import time
 
-SECRET_KEY = b"supersecret"  # 보안적으로는 환경변수에서 받아야 함
+SECRET_KEY = b"supersecret"
 
 
 def generate_token(user_id: str, expire_seconds: int = 3600) -> str:

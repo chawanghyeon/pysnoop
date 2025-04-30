@@ -1,4 +1,4 @@
-# core/auth/users.py
+# server/auth/users.py
 import hashlib
 import sqlite3
 from pathlib import Path
