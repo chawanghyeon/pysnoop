@@ -1,4 +1,3 @@
-import argparse
 import asyncio
 import json
 import os
@@ -142,14 +141,3 @@ async def run_server():
         except asyncio.CancelledError:
             pass
         print("[SERVER] Clean shutdown complete.")
-
-
-def parse_args() -> tuple[argparse.Namespace, list[str]]:
-    parser = argparse.ArgumentParser(description="pysnoop main entry")
-    parser.add_argument(
-        "--mode",
-        choices=["server", "agent"],
-        required=True,
-        help="Which mode to run: server or agent",
-    )
-    return parser.parse_known_args()
