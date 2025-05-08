@@ -2,7 +2,7 @@
 import argparse
 import asyncio
 
-from server.main import run_server  # 서버 루프
+from apps.server.main import run_server  # 서버 루프
 
 
 def parse_main_args() -> tuple[argparse.Namespace, list[str]]:
@@ -25,7 +25,7 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("\n[MAIN] KeyboardInterrupt received. Exiting...")
     else:
-        from agents.main import run_agent
+        from apps.agents.main import run_agent
 
         try:
             asyncio.run(run_agent())

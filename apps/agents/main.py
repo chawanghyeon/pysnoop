@@ -8,9 +8,8 @@ from datetime import datetime
 from types import FrameType
 from typing import Optional
 
-from dotenv import load_dotenv
-
 from agents.collectors.base import collector_registry
+from dotenv import load_dotenv
 
 # ✅ Load .env
 load_dotenv()
