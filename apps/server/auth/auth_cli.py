@@ -4,19 +4,24 @@ import secrets
 from datetime import datetime, timedelta
 from pathlib import Path
 
-TOKEN_PATH = Path("server/auth/token_registry.json")
+# 스크립트 파일의 디렉토리를 기준으로 token_registry.json 경로 설정
+_CURRENT_DIR = Path(__file__).resolve().parent
+TOKEN_PATH = _CURRENT_DIR / "token_registry.json"
 
 
 def load_registry() -> dict:
     if TOKEN_PATH.exists():
-        with open(TOKEN_PATH) as f:
+        # 파일이 존재하면 읽어서 반환
+        with open(TOKEN_PATH, "r", encoding="utf-8") as f:  # utf-8 인코딩 명시
             return json.load(f)
-    return {}
+    return {}  # 파일 없으면 빈 딕셔너리 반환
 
 
 def save_registry(registry: dict):
-    with open(TOKEN_PATH, "w") as f:
-        json.dump(registry, f, indent=2)
+    # TOKEN_PATH의 부모 디렉토리가 존재하지 않으면 생성
+    TOKEN_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(TOKEN_PATH, "w", encoding="utf-8") as f:  # utf-8 인코딩 명시
+        json.dump(registry, f, indent=2, ensure_ascii=False)
 
 
 def issue_token(user_id: str, valid_days: int = 365):
