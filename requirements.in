@@ -4,3 +4,5 @@ pre-commit
 cryptography
 pip-tools
 python-dotenv
+pydantic-settings
+pydantic
