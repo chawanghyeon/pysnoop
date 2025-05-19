@@ -11,8 +11,9 @@ from pathlib import Path
 from types import FrameType
 from typing import List, Optional, Tuple
 
-from agents.collectors.base import collector_registry
 from dotenv import load_dotenv
+
+from apps.agents.collectors.base import collector_registry
 
 # Load .env
 load_dotenv()

@@ -7,11 +7,11 @@ import ssl
 from datetime import datetime  # Ensure datetime is imported directly if used for type hints
 from pathlib import Path
 
-from server.auth.session import verify_hmac_signature, verify_token
-from server.utils.gen_cert import generate_self_signed_cert
-from server.utils.log_writer import LogWriter
-from server.utils.memory_cache import MetricCache
-from server.utils.message import MessageParseError, parse_message
+from apps.server.auth.session import verify_hmac_signature, verify_token
+from apps.server.utils.gen_cert import generate_self_signed_cert
+from apps.server.utils.log_writer import LogWriter
+from apps.server.utils.memory_cache import MetricCache
+from apps.server.utils.message import MessageParseError, parse_message
 
 # 서버 설정
 HOST = os.environ.get("SERVER_HOST", "127.0.0.1")  # Make HOST configurable
