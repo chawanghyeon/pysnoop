@@ -1,21 +1,20 @@
 # apps/agents/collectors/uptime.py
 import subprocess
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 from .base import BaseCollector, register_collector
 
 
 @register_collector
 class UptimeCollector(BaseCollector):
-    def collect(self) -> List[Tuple[str, float]]:
+    def collect(
+        self,
+    ) -> List[Tuple[str, Any]]:  # 반환 타입을 Any로 변경 또는 (str, str)
         try:
-            # 'uptime -p' output: "up 2 weeks, 4 days, 13 hours, 25 minutes"
-            # Consider parsing 'uptime' (no -p) for seconds for a more standard metric.
-            # Example: `uptime_output = subprocess.check_output(["uptime"], text=True).strip()`
-            # Then parse `uptime_output`. For now, keeping original logic but renaming metric.
             output = subprocess.check_output(["uptime", "-p"], text=True, errors="ignore").strip()
             if output:
-                return [("system.uptime.description_length", float(len(output)))]
+                # URI를 변경하고, 실제 output 문자열을 반환
+                return [("system.uptime.description", output)]
             return []
         except FileNotFoundError:
             print("[WARN][UptimeCollector] 'uptime' command not found.")
