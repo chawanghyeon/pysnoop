@@ -185,3 +185,6 @@ ssl/
 
 # token registry
 token_registry.json
+
+# logs
+logs/

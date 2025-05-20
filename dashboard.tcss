@@ -1,0 +1,104 @@
+/* dashboard.tcss */
+Screen {
+    layout: vertical;
+    overflow: hidden; /* 전체 화면 스크롤 방지 */
+}
+
+Header {
+    dock: top;
+    background: $primary-background-darken-2; /* 헤더 배경색 */
+    color: $text; /* 헤더 글자색 */
+    height: 1;
+    text-style: bold;
+    padding: 0 1;
+}
+
+Footer {
+    dock: bottom;
+    background: $primary-background-darken-3; /* 푸터 배경색 */
+    color: $text-muted; /* 푸터 글자색 */
+    height: 1;
+    padding: 0 1;
+}
+
+#custom_clock {
+    content-align: right middle;
+    width: auto;
+    height: 1;
+    padding: 0 1;
+}
+
+#app-grid {
+    layout: horizontal;
+    height: 1fr; /* Header, Footer 제외한 나머지 공간 차지 */
+    padding: 0 1; /* 좌우 패딩 */
+    background: $surface; /* 앱 배경색 */
+}
+
+#left-column {
+    width: 35%; /* 왼쪽 컬럼 너비 */
+    height: 100%;
+    padding-right: 1; /* 오른쪽 컬럼과의 간격 */
+    overflow-y: auto; /* 내용 많으면 스크롤 */
+}
+
+#right-column {
+    width: 1fr; /* 나머지 너비 차지 (65%) */
+    height: 100%;
+    overflow-y: auto; /* 내용 많으면 스크롤 */
+}
+
+/* 개별 위젯 공통 스타일 */
+#left-column > Static,
+#left-column > Container,
+#right-column > Static,
+#right-column > Container {
+    border: round $primary-darken-1; /* 테두리 스타일 */
+    background: $primary-background-lighten-1; /* 위젯 배경색 */
+    margin-bottom: 1; /* 위젯 간 하단 간격 */
+    padding: 1; /* 위젯 내부 패딩 */
+    height: auto; /* 내용에 따라 높이 자동 조절 */
+    /* BORDER_TITLE이 설정된 위젯에 대한 제목 스타일 */
+    border-title-align: center;
+    border-title-style: bold;
+    border-title-color: $secondary; /* 기본 제목 색상 */
+}
+
+
+/* 특정 위젯 ID에 대한 추가 스타일 및 제목 색상 재정의 */
+#uptime {
+    min-height: 3; /* 최소 높이 */
+    max-height: 5;
+    border-title-color: $secondary-lighten-2; /* Uptime 위젯 제목 색상 */
+}
+
+#sys_info {
+    min-height: 8;
+    max-height: 15;
+    border-title-color: $success; /* System Info 위젯 제목 색상 */
+}
+
+#dmesg_errors {
+    min-height: 3;
+    max-height: 5;
+    border-title-color: $error; /* Dmesg Errors 위젯 제목 색상 */
+}
+
+#top_procs {
+    min-height: 15;
+    border-title-color: $warning; /* Top Processes 위젯 제목 색상 */
+}
+#top_procs DataTable { /* DataTable 위젯은 Container 내부에 있으므로 이렇게 선택 */
+    width: 100%;
+    height: 100%;
+}
+
+
+#docker_stats {
+    min-height: 10;
+    border-title-color: $primary; /* Docker Stats 위젯 제목 색상 ($info 대신 $primary 사용) */
+}
+#docker_stats DataTable { /* DataTable 위젯은 Container 내부에 있으므로 이렇게 선택 */
+     width: 100%;
+    height: 100%;
+}

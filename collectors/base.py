@@ -1,6 +1,6 @@
-# agents/collectors/base.py
+# apps/collectors/base.py
 from abc import ABC, abstractmethod
-from typing import Any, List, Tuple, Type
+from typing import Any, Dict, List, Tuple, Type, Union  # Added Union, Dict
 
 
 class BaseCollector(ABC):
@@ -8,10 +8,9 @@ class BaseCollector(ABC):
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        BaseCollector.registry.append(cls)
 
     @abstractmethod
-    def collect(self) -> List[Tuple[str, float]]:
+    def collect(self) -> Union[List[Tuple[str, Any]], List[Dict[str, Any]]]:
         pass
 
 
