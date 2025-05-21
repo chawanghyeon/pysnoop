@@ -1,13 +1,13 @@
 /* dashboard.tcss */
 Screen {
     layout: vertical;
-    overflow: hidden; /* 전체 화면 스크롤 방지 */
+    overflow: hidden;
 }
 
 Header {
     dock: top;
-    background: $primary-background-darken-2; /* 헤더 배경색 */
-    color: $text; /* 헤더 글자색 */
+    background: $primary-background-darken-2;
+    color: $text;
     height: 1;
     text-style: bold;
     padding: 0 1;
@@ -15,8 +15,8 @@ Header {
 
 Footer {
     dock: bottom;
-    background: $primary-background-darken-3; /* 푸터 배경색 */
-    color: $text-muted; /* 푸터 글자색 */
+    background: $primary-background-darken-3;
+    color: $text-muted;
     height: 1;
     padding: 0 1;
 }
@@ -30,75 +30,92 @@ Footer {
 
 #app-grid {
     layout: horizontal;
-    height: 1fr; /* Header, Footer 제외한 나머지 공간 차지 */
-    padding: 0 1; /* 좌우 패딩 */
-    background: $surface; /* 앱 배경색 */
+    height: 1fr;
+    padding: 0 1;
+    background: $surface;
 }
 
 #left-column {
-    width: 35%; /* 왼쪽 컬럼 너비 */
+    width: 35%;
     height: 100%;
-    padding-right: 1; /* 오른쪽 컬럼과의 간격 */
-    overflow-y: auto; /* 내용 많으면 스크롤 */
+    padding-right: 1;
+    overflow-y: auto;
 }
 
 #right-column {
-    width: 1fr; /* 나머지 너비 차지 (65%) */
+    width: 1fr;
     height: 100%;
-    overflow-y: auto; /* 내용 많으면 스크롤 */
+    overflow-y: auto;
 }
 
-/* 개별 위젯 공통 스타일 */
+/* === 수정된 공통 위젯 스타일 === */
+/* 모든 대상 위젯에 #sys_info와 유사한 스타일을 적용 */
 #left-column > Static,
 #left-column > Container,
+#left-column > Widget, /* SystemInfoWidget도 포함하도록 Widget 추가 */
 #right-column > Static,
-#right-column > Container {
-    border: round $primary-darken-1; /* 테두리 스타일 */
-    background: $primary-background-lighten-1; /* 위젯 배경색 */
-    margin-bottom: 1; /* 위젯 간 하단 간격 */
-    padding: 1; /* 위젯 내부 패딩 */
-    height: auto; /* 내용에 따라 높이 자동 조절 */
-    /* BORDER_TITLE이 설정된 위젯에 대한 제목 스타일 */
+#right-column > Container,
+#right-column > Widget { /* SystemInfoWidget도 포함하도록 Widget 추가 */
+    border: round $primary; /* #sys_info의 border 스타일과 통일 */
+    background: $primary-background; /* 배경색 단순화 또는 #sys_info에 맞게 조정 */
+    margin: 1; /* #sys_info의 margin 스타일과 통일 (margin-bottom 대신 margin 사용) */
+    padding: 1; /* #sys_info의 padding 스타일과 통일 */
+    height: auto;
+
+    /* BORDER_TITLE 스타일은 유지하거나 필요에 따라 조정 */
     border-title-align: center;
     border-title-style: bold;
-    border-title-color: $secondary; /* 기본 제목 색상 */
+    border-title-color: $text; /* 제목 색상을 좀 더 기본적인 것으로 통일하거나 $secondary 유지 */
 }
 
-
-/* 특정 위젯 ID에 대한 추가 스타일 및 제목 색상 재정의 */
-#uptime {
-    min-height: 3; /* 최소 높이 */
-    max-height: 5;
-    border-title-color: $secondary-lighten-2; /* Uptime 위젯 제목 색상 */
-}
-
+/* SystemInfoWidget (ID: #sys_info)는 이제 공통 스타일을 따름 */
+/* 따라서 #sys_info에 대한 별도 규칙은 높이 및 스크롤바만 남기거나 공통으로 통합 */
 #sys_info {
-    min-height: 8;
-    max-height: 15;
-    border-title-color: $success; /* System Info 위젯 제목 색상 */
+    max-height: 10; /* #sys_info 고유의 최대 높이 유지 */
+    /* border, padding, margin 등은 공통 스타일에서 상속받음 */
+}
+
+#system_info_scroll_area { /* SystemInfoWidget 내부 스크롤바 */
+    scrollbar-background: $primary-background-darken-2;
+    scrollbar-background-hover: $primary-background-darken-1;
+    scrollbar-color: $primary;
+    scrollbar-color-hover: $secondary;
+}
+
+
+/* === 개별 위젯 스타일 최소화 또는 제거 === */
+/* #uptime, #dmesg_errors 등은 이제 공통 스타일을 주로 따르게 됩니다. */
+/* 필요하다면 최소한의 고유 스타일만 남깁니다. */
+
+#uptime {
+    /* min-height, max-height 등은 필요 시 유지, 아니면 공통 height: auto 따름 */
+    /* border-title-color는 공통 스타일을 따르거나 여기서 재정의 */
+    max-height: 5; /* 예시: Uptime은 최대 5줄로 제한 */
 }
 
 #dmesg_errors {
-    min-height: 3;
-    max-height: 5;
-    border-title-color: $error; /* Dmesg Errors 위젯 제목 색상 */
+    /* min-height, max-height 등은 필요 시 유지 */
+    max-height: 5; /* 예시: Dmesg도 최대 5줄로 제한 */
+    /* border-title-color: $error; /* 오류 강조를 위해 유지할 수 있음 */
 }
 
+/* TopProcessesWidget과 DockerStatsWidget은 내부에 DataTable을 포함하므로, */
+/* 해당 DataTable의 크기 조절은 필요할 수 있습니다. */
+/* 이 위젯들의 전체적인 테두리, 패딩 등은 공통 스타일을 따릅니다. */
 #top_procs {
-    min-height: 15;
-    border-title-color: $warning; /* Top Processes 위젯 제목 색상 */
+    /* min-height: 15; /* 내용이 많으므로 유지하거나 조정 */
+    /* border-title-color는 공통 스타일을 따르거나 여기서 재정의 */
 }
-#top_procs DataTable { /* DataTable 위젯은 Container 내부에 있으므로 이렇게 선택 */
+#top_procs DataTable {
     width: 100%;
     height: 100%;
 }
 
-
 #docker_stats {
-    min-height: 10;
-    border-title-color: $primary; /* Docker Stats 위젯 제목 색상 ($info 대신 $primary 사용) */
+    /* min-height: 10; /* 내용이 많으므로 유지하거나 조정 */
+    /* border-title-color는 공통 스타일을 따르거나 여기서 재정의 */
 }
-#docker_stats DataTable { /* DataTable 위젯은 Container 내부에 있으므로 이렇게 선택 */
-     width: 100%;
+#docker_stats DataTable {
+    width: 100%;
     height: 100%;
 }
