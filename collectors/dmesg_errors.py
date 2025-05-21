@@ -12,7 +12,7 @@ class DmesgErrorCollector(BaseCollector):
             # dmesg 명령어는 종종 루트 권한이 필요합니다.
             # stderr=subprocess.DEVNULL 추가하여 stderr 출력을 화면에 표시하지 않도록 시도
             output = subprocess.check_output(
-                ["dmesg", "--level=err"],
+                ["sudo", "dmesg", "--level=err"],
                 text=True,
                 errors="ignore",
                 stderr=subprocess.DEVNULL,  # <--- 이 부분을 추가합니다.
