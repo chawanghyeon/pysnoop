@@ -1,5 +1,4 @@
-psutil==6.1.1
-pytest
+psutil
 pre-commit
 cryptography
 pip-tools
